@@ -610,9 +610,35 @@ def main(
         console.print(ctx.get_help())
 
 
+def _setup_windows_console():
+    """Configure Windows console for UTF-8 output.
+
+    On Windows with non-UTF-8 codepages (e.g. cp949 for Korean),
+    Rich's legacy Windows renderer fails to output Unicode symbols
+    like ✓, ✗, ⚠ causing UnicodeEncodeError. This function sets
+    the console output codepage to UTF-8 and reconfigures Python's
+    stdout/stderr to match.
+    """
+    import sys as _sys
+    if _sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        kernel32.SetConsoleOutputCP(65001)
+        kernel32.SetConsoleCP(65001)
+        if hasattr(_sys.stdout, "reconfigure"):
+            _sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(_sys.stderr, "reconfigure"):
+            _sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 def cli_main():
     """Main CLI entry point with error handling."""
     import sys
+    _setup_windows_console()
     try:
         app()
     except Exception as e:
